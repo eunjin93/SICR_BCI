@@ -1,2 +1,2 @@
 # SICR_BCI
-Tensorflow implementation of "Subject-Invariant and Class-Relevant Representation Learning based on Mutual Information for BCI"
+Tensorflow implementation of "Mutual Information-driven Subject-invariant and Class-relevant Deep Representation Learning in BCI"
