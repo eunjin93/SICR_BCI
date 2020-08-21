@@ -27,6 +27,8 @@ if st.data == "KU":
     num_ch = 62
     num_time = int(3000 / 2)
     fs = int(1000 / 2)
+    nfeatg = 736
+    nfeatl, nfeatl2 = 16, 374
 
 elif st.data == "GIST":
     all = np.arange(1, 53)
@@ -34,22 +36,14 @@ elif st.data == "GIST":
     num_ch = 64
     num_time = 1024
     fs = 512
+    nfeatg = 512
+    nfeatl, nfeatl2 = 16, 255
+    
 else:
     raise NameError("Check the dataset.")
 
 """ Build Network """
 print("=" * 30, "> Build network")
-
-if st.data == "KU":
-    nfeatg = 736
-    nfeatl, nfeatl2 = 16, 374
-
-elif st.data == "GIST":
-    nfeatg = 512
-    nfeatl, nfeatl2 = 16, 255
-
-else:
-    raise  NameError("Check the dataset.")
 
 local_enc = md.LocalEncoder_EEGNet(fs=fs, num_ch=num_ch, num_time=num_time).to(device)
 global_enc = md.GlobalEncoder_EEGNet(num_ch=num_ch, num_time=num_time, nfeatl=int(nfeatl)).to(device)
@@ -153,7 +147,6 @@ print("=" * 30, "> Train")
 
 iter = 0
 cls_criterion = nn.CrossEntropyLoss().cuda()
-recon_criterion = nn.MSELoss().cuda()
 writer = SummaryWriter("./logs_Ours/TIME/%s" %(case))
 
 # Train
@@ -198,7 +191,8 @@ for ep in range(st.total_epoch):
         loss_local_mi = temp.mean()
 
         loss_dim = - (loss_global_mi + loss_local_mi)
-
+        
+        # All objective function
         loss_all = st.alpha * loss_class + st.beta * loss_decomposition + st.gamma * loss_dim
 
         loss_all.backward()
@@ -208,11 +202,9 @@ for ep in range(st.total_epoch):
         # Tensorboard
         writer.add_scalars("Train", {"L_all": loss_all.item(), "L_class": loss_class.item(), "L_MINE": loss_decomposition.item(), "L_Global_MI": loss_global_mi.item(),
                                      "L_Local_MI": loss_local_mi.item(), "L_DIM": loss_dim.item()}, iter)
-
         iter = iter + 1
 
-    scheduler.step()
-
+    scheduler.step() # learning rate decay
     print("%s: %d epoch" %(case, ep))
 
     # Evaluation
