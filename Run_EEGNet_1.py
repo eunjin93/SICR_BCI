@@ -44,15 +44,13 @@ else:
 
 """ Build Network """
 print("=" * 30, "> Build network")
-
 local_enc = md.LocalEncoder_EEGNet(fs=fs, num_ch=num_ch, num_time=num_time).to(device)
-global_enc = md.GlobalEncoder_EEGNet(num_ch=num_ch, num_time=num_time, nfeatl=int(nfeatl)).to(device)
-local_disc = md.Local_disc_EEGNet(nfeatl=int(nfeatl), nfeatg=nfeatg, nfeatl2=nfeatl2, num_ch=num_ch).to(device)
-global_disc = md.Global_disc_EEGNet(nfeatl=int(nfeatl), nfeatg=nfeatg, num_ch=num_ch).to(device)
+global_enc = md.GlobalEncoder_EEGNet(num_ch=num_ch, num_time=num_time, nfeatl=nfeatl).to(device)
+local_disc = md.Local_disc_EEGNet(nfeatl=nfeatl, nfeatg=nfeatg, nfeatl2=nfeatl2, num_ch=num_ch).to(device)
+global_disc = md.Global_disc_EEGNet(nfeatl=nfeatl, nfeatg=nfeatg, num_ch=num_ch).to(device)
 decomposer = md.Decomposer(nfeatl).to(device)
 mine = md.MINE(nfeatr=int(nfeatl * nfeatl2), nfeati=int(nfeatl* nfeatl2)).to(device)
 classifier = md.Classifier(nfeatg).to(device)
-
 
 """ Optimizer """
 parameters = list(local_enc.parameters()) + list(global_enc.parameters()) + list(local_disc.parameters()) + list(global_disc.parameters()) + list(classifier.parameters()) + list(mine.parameters()) + list(decomposer.parameters())
@@ -102,7 +100,6 @@ for ia in sources:
 
     lblts["Sub{0}".format(ia)] = torch.from_numpy(tslbl).long()
 
-
 """ Gaussian normalization """
 train, mean, std = ut.Gaussian_normalization(data=alltr, mean=0, std=1, train=True, num_ch=num_ch)
 valid, _, _ = ut.Gaussian_normalization(data=allvl, mean=mean, std=std, train=False, num_ch=num_ch)
@@ -134,7 +131,6 @@ vllbl = torch.from_numpy(lblvl).long()
 tr_tensor = TensorDataset(train, trlbl)
 vl_tensor = TensorDataset(valid, vllbl)
 
-
 """ Dataloader """
 ts_loader = dict()
 for ia in sources:
@@ -144,11 +140,9 @@ vl_loader = DataLoader(vl_tensor, batch_size=st.bs, shuffle=True, pin_memory=Tru
 
 """ Training """
 print("=" * 30, "> Train")
-
 iter = 0
 cls_criterion = nn.CrossEntropyLoss().cuda()
 writer = SummaryWriter("./logs_Ours/TIME/%s" %(case))
-
 # Train
 for ep in range(st.total_epoch):
     global_enc.train(), local_enc.train(), local_disc.train(), global_disc.train(), mine.train(), decomposer.train(), classifier.train()
