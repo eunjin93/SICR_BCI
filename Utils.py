@@ -9,26 +9,14 @@ from torch.autograd import Variable
 from sklearn.metrics import accuracy_score
 import torch.nn.functional as F
 import Setting as st
-import scipy.signal as signal
 
 
-def load_TIME_GIST(sbj, cv):
-    tr = np.load(st.GIST_time_path + "TIME_cv%d_tr_sub%02d.npy" %(cv, sbj))
-    vl = np.load(st.GIST_time_path + "TIME_cv%d_vl_sub%02d.npy" %(cv, sbj))
-    ts = np.load(st.GIST_time_path + "TIME_cv%d_ts_sub%02d.npy" %(cv, sbj))
-
-    return tr, vl, ts
-
-def load_TIME_KU(sbj, cv):
-    tr = np.load(st.KU_time_path + "TIME_cv%d_tr_sub%02d.npy" % (cv, sbj))
-    vl = np.load(st.KU_time_path + "TIME_cv%d_vl_sub%02d.npy" % (cv, sbj))
-    ts = np.load(st.KU_time_path + "TIME_cv%d_ts_sub%02d.npy" % (cv, sbj))
+def load_time(sbj):
+    tr = np.load(st.preprocessed_data_path + "Preprocessed_s%02d_train.npy" % (sbj))
+    vl = np.load(st.preprocessed_data_path + "Preprocessed_s%02d_valid.npy" % (sbj))
+    ts = np.load(st.preprocessed_data_path + "Preprocessed_s%02d_test.npy" % (sbj))
 
     return tr, vl, ts
-
-def downsampling(data, num, axis):
-    filtered = signal.resample(data, num==num, axis=axis)
-    return filtered
 
 def read_file_name(query, pool_path):
     answer = glob.glob(pool_path + query)
@@ -45,24 +33,6 @@ def delete_dir(path):
         os.remove(path)
 
     return
-
-def Gaussian_normalization(data, mean, std, num_ch, train=True):
-
-    if train == True:
-        mean_ch = np.empty(shape=(num_ch))
-        std_ch = np.empty(shape=(num_ch))
-
-        for cha in range(num_ch):
-            mean_ch[cha] = data[cha,:,:].mean()
-            std_ch[cha] = data[cha,:,:].std()
-
-        mean = mean_ch
-        std = std_ch
-
-    for ch in range(num_ch):
-        data[ch,:,:] = (data[ch,:,:]-mean[ch])/(std[ch]+0.00000001)
-    return data, mean, std
-
 
 class GradReverse(torch.autograd.Function):
     """
@@ -91,7 +61,6 @@ def estimate_JSD_MI(joint, marginal, mean=False):
         out = out.mean()
     return out
 
-
 def evaluation(encoder1, encoder2, classifier, decomposer, loader, criterion):
     loss_all = 0
     pred_all = np.empty(shape=(0), dtype=np.float32)
@@ -118,3 +87,22 @@ def evaluation(encoder1, encoder2, classifier, decomposer, loader, criterion):
 
     acc = accuracy_score(real_all, pred_all)
     return loss_all, acc
+
+def Gaussian_normalization(data, mean, std, num_ch , train=True):
+    # data: [channel, freq or time , trials]
+
+    if train == True:
+        mean_ch = np.empty(shape=(num_ch))
+        std_ch = np.empty(shape=(num_ch))
+
+        for cha in range(num_ch):
+            mean_ch[cha] = data[cha,:,:].mean()
+            std_ch[cha] = data[cha,:,:].std()
+
+        mean = mean_ch
+        std = std_ch
+
+    for ch in range(num_ch):
+        data[ch,:,:] = (data[ch,:,:]-mean[ch])/(std[ch]+0.00000001)
+
+    return data, mean, std
